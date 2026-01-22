@@ -19,36 +19,41 @@ jobs:
               "text": "🔍 *${{ github.workflow }}* completed!\n📊 *Status:* ${{ job.status }}\n📂 Repo: ${{ github.repository }}\n🔢 Run: #${{ github.run_number }}",
               "blocks": [
                 {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🛡️ GHAS Security Results"
+                  }
+                },
+                {
                   "type": "section",
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*🛡️ Code Scanning:*\n✅ Check Security tab → Code scanning"
+                      "text": "*🛡️ Code Scanning:*\n✅ Latest results"
                     },
                     {
                       "type": "mrkdwn", 
-                      "text": "*🔑 Secret Scanning:*\n✅ Automatic - View alerts"
+                      "text": "*🔑 Secret Scanning:*\n✅ Latest alerts"
                     }
                   ]
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "👉 <${{ github.server_url }}/${{ github.repository }}/security/code-scanning|View Code Scanning>\n👉 <${{ github.server_url }}/${{ github.repository }}/security/alerts|View Secret Alerts>"
-                  }
                 },
                 {
                   "type": "actions",
                   "elements": [
                     {
                       "type": "button",
-                      "text": { "type": "plain_text", "text": "Security Tab" },
-                      "url": "${{ github.server_url }}/${{ github.repository }}/security"
+                      "text": { "type": "plain_text", "text": "🛡️ Code Scanning" },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/security/code-scanning"
+                    },
+                    {
+                      "type": "button",
+                      "text": { "type": "plain_text", "text": "🔑 Secret Scanning" },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/security/secret-scanning"
                     },
                     {
                       "type": "button", 
-                      "text": { "type": "plain_text", "text": "View Run" },
+                      "text": { "type": "plain_text", "text": "📊 View Run" },
                       "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                     }
                   ]
