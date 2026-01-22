@@ -1,19 +1,11 @@
-- name: Fetch code scanning alerts
-  id: code_alerts
-  run: |
-    # Generate random delimiter to avoid EOF conflicts
-    DELIM=$(openssl rand -hex 16)
-    
-    # Fetch GHAS code scanning alerts safely
-    ALERTS=$(gh api \
-      -H "Accept: application/vnd.github.code-scanning+json" \
-      "/repos/${{ github.repository }}/code-scanning/alerts?status=open" \
-      --jq 'if length > 0 then "🚨 " + (.[0].tool.toolName | tostring) + ": " + (.[0].mostRecentInstance.location.message | tostring) else "No alerts" end' \
-      2>/dev/null || echo "No code scanning alerts")
-    
-    # Write output with proper multiline formatting
-    echo "alerts<<$DELIM" >> $GITHUB_OUTPUT
-    echo "$ALERTS" >> $GITHUB_OUTPUT
-    echo "$DELIM" >> $GITHUB_OUTPUT
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+name: GHAS Slack Notifications  # Add root name
+
+on:
+  # Your trigger events here (schedule, workflow_run, etc.)
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Fetch code scanning alerts  # Now properly nested
+      # Your step content here
