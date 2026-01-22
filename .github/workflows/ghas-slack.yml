@@ -1,17 +1,94 @@
 name: GHAS Slack Notifications
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
 jobs:
-  notify:
+  ghas-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Slack Notification
-        uses: slackapi/slack-github-action@v1.26.0
+      
+      # CodeQL Analysis (Code Scanning)
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
         with:
-          payload: |
-            {
-              "text": "✅ ${{ github.workflow }} completed!\nRepo: ${{ github.repository }}\nRun: ${{ github.run_number }}\nStatus: ${{ job.status }}"
-            }
+          languages: javascript,python  # Add your languages
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+      
+      # Secret Scanning (requires Advanced Security)
+      - name: Run Secret Scanning
+        uses: github/secret-scanning-action@v1
+      
+  notify-slack:
+    needs: ghas-scan
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Slack GHAS Results
+        uses: slackapi/slack-github-action@v1.26.0
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        with:
+          channel-id: '#ghas-notifications'
+          blocks: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🔍 GHAS Scan Results: ${{ needs.ghas-scan.result }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repo:* `${{ github.repository }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Run:* #${{ github.run_number }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:* `${{ github.ref_name }}`"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*CodeQL:* ${{ needs.ghas-scan.result }} - <${{ github.server_url }}/${{ github.repository }}/security/code-scanning | View alerts>"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Secret Scanning:* ${{ needs.ghas-scan.result }} - <${{ github.server_url }}/${{ github.repository }}/security/alerts | View secrets>"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
