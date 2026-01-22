@@ -6,11 +6,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Slack Notification
-        if: always()
         uses: slackapi/slack-github-action@v1.26.0
         with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          channel-id: 'C018YG5J7TP'  # Your channel name
-          text: |
-            *${{ github.workflow }}* ${{ job.status }}
-            ${{ github.repository }} #${{ github.run_number }}
+          payload: |
+            {
+              "text": "✅ ${{ github.workflow }} completed!\nRepo: ${{ github.repository }}\nRun: ${{ github.run_number }}\nStatus: ${{ job.status }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
