@@ -16,12 +16,10 @@ jobs:
       - name: Send Slack notification
         if: always()
         uses: slackapi/slack-github-action@v1.26.0
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
         with:
-          channel-id: 'C018YG5J7TP'
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          channel-id: C018YG5J7TP # or your channel name
           text: |
-            📢 *${{ github.workflow }}* workflow ${{ job.status }}! 
+            📢 *${{ github.workflow }}* completed with status: ${{ job.status }}
             📂 ${{ github.repository }} #${{ github.run_number }}
             🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
