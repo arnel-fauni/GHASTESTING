@@ -1,25 +1,16 @@
 name: GHAS Slack Notifications
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
+on: [push, pull_request]
 jobs:
-  notify-slack:
+  notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Send Slack notification
+      - uses: actions/checkout@v4
+      - name: Slack Notification
         if: always()
         uses: slackapi/slack-github-action@v1.26.0
         with:
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          channel-id: C018YG5J7TP # or your channel name
+          channel-id: 'C018YG5J7TP'  # Your channel name
           text: |
-            📢 *${{ github.workflow }}* completed with status: ${{ job.status }}
-            📂 ${{ github.repository }} #${{ github.run_number }}
-            🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            *${{ github.workflow }}* ${{ job.status }}
+            ${{ github.repository }} #${{ github.run_number }}
