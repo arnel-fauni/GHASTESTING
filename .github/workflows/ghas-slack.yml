@@ -1,11 +1,27 @@
-name: GHAS Slack Notifications  # Add root name
+name: GHAS Slack Notifications
 
 on:
-  # Your trigger events here (schedule, workflow_run, etc.)
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   notify-slack:
     runs-on: ubuntu-latest
     steps:
-    - name: Fetch code scanning alerts  # Now properly nested
-      # Your step content here
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Send Slack notification
+        if: always()
+        uses: slackapi/slack-github-action@v1.26.0
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        with:
+          channel-id: 'C018YG5J7TP'
+          text: |
+            📢 *${{ github.workflow }}* workflow ${{ job.status }}! 
+            📂 ${{ github.repository }} #${{ github.run_number }}
+            🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
