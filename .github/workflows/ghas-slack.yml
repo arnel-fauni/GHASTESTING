@@ -2,34 +2,28 @@ name: GHAS Slack Notifications
 on: [push, pull_request]
 permissions:
   contents: read
-  security-events: write
-  pull-requests: read
 jobs:
-  ghas-scan:
+  notify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
-      # CodeQL Analysis (Code Scanning)
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+      # Optional: Run Trivy for vulnerability scanning (no SARIF conflicts)
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
         with:
-          languages: javascript,python  # Change to your languages
+          scan-type: 'fs'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
       
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-
-  notify:
-    needs: ghas-scan
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
       - name: Slack Notification
+        if: always()
         uses: slackapi/slack-github-action@v1.26.0
         with:
           payload: |
             {
-              "text": "🔍 *${{ github.workflow }}* completed!\n📊 *Status:* ${{ needs.ghas-scan.result }}\n📂 Repo: ${{ github.repository }}\n🔢 Run: #${{ github.run_number }}\n🛡️ *CodeQL:* ${{ needs.ghas-scan.result }}\n🔑 *Secret Scanning:* Automatic (View Security tab)\n📋 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+              "text": "🔍 *${{ github.workflow }}* completed!\n📊 *Status:* ${{ job.status }}\n📂 Repo: ${{ github.repository }}\n🔢 Run: #${{ github.run_number }}\n🛡️ *Security:* ${{ job.status }}\n🔑 *Secret Scanning:* Automatic (Security tab)\n📋 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
