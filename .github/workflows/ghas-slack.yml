@@ -10,16 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Get Code Scanning Alerts
-        id: codeql
-        run: |
-          ALERTS=$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/code-scanning/alerts \
-            --jq '.alerts | length')
-          echo "alerts=$ALERTS" >> $GITHUB_OUTPUT
-      
-      - name: Slack Notification  
+      - name: Slack Notification
         if: always()
         uses: slackapi/slack-github-action@v1.26.0
         with:
@@ -32,21 +23,28 @@ jobs:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*🛡️ Code Scanning:*\n${{ steps.codeql.outputs.alerts }} alerts"
+                      "text": "*🛡️ Code Scanning:*\n✅ Check Security tab → Code scanning"
                     },
                     {
                       "type": "mrkdwn", 
-                      "text": "*🔑 Secret Scanning:*\nCheck Security tab"
+                      "text": "*🔑 Secret Scanning:*\n✅ Automatic - View alerts"
                     }
                   ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "👉 <${{ github.server_url }}/${{ github.repository }}/security/code-scanning|View Code Scanning>\n👉 <${{ github.server_url }}/${{ github.repository }}/security/alerts|View Secret Alerts>"
+                  }
                 },
                 {
                   "type": "actions",
                   "elements": [
                     {
                       "type": "button",
-                      "text": { "type": "plain_text", "text": "View Code Scanning" },
-                      "url": "${{ github.server_url }}/${{ github.repository }}/security/code-scanning"
+                      "text": { "type": "plain_text", "text": "Security Tab" },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/security"
                     },
                     {
                       "type": "button", 
@@ -60,4 +58,3 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-          GH_TOKEN: ${{ github.token }}
