@@ -1,16 +1,18 @@
 name: GHAS Alerts to Slack
-
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Every 15 minutes
-  workflow_dispatch:  # Manual trigger
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 jobs:
   notify-slack:
     runs-on: ubuntu-latest
     permissions:
-      security-events: read  # Required for GHAS alerts
+      security-events: read  # Critical: enables GHAS API access
     steps:
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Fetch code scanning alerts
         id: code-scan
         env:
@@ -18,28 +20,45 @@ jobs:
         run: |
           ALERTS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/code-scanning/alerts?per_page=10")
-          NEW_ALERTS=$(echo "$ALERTS" | jq -r '.items[] | select(.state == "open") | "\(.rule.severity): \(.most_recent_instance.ref) - \(.html_url)"')
-          echo "alerts<<EOF" >> $GITHUB_OUTPUT
-          echo "$NEW_ALERTS" >> $GITHUB_OUTPUT
-          echo "<<EOF" >> $GITHUB_OUTPUT
+            "https://api.github.com/repos/${{ github.repository }}/code-scanning/alerts?per_page=10" || echo "[]")
+          
+          if [ "$ALERTS" = "[]" ] || [ "$(echo "$ALERTS" | jq '.total_count')" = "0" ]; then
+            echo "no_code_alerts=true" >> $GITHUB_OUTPUT
+            echo "alerts<<EOF" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "<<EOF" >> $GITHUB_OUTPUT
+          else
+            NEW_ALERTS=$(echo "$ALERTS" | jq -r '.items[] | select(.state == "open") | "*\(.rule.severity | upcase)* \(.rule.id): \(.html_url)"' || echo "")
+            echo "no_code_alerts=false" >> $GITHUB_OUTPUT
+            echo "alerts<<EOF" >> $GITHUB_OUTPUT
+            echo "$NEW_ALERTS" >> $GITHUB_OUTPUT
+            echo "<<EOF" >> $GITHUB_OUTPUT
+          fi
 
       - name: Fetch secret scanning alerts
-        if: steps.code-scan.outputs.alerts != ''
         id: secret-scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SECRETS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/secret-scanning/alerts?per_page=10")
-          NEW_SECRETS=$(echo "$SECRETS" | jq -r '.items[] | select(.state == "active") | "Secret: \(.secret_type) - \(.html_url)"')
-          echo "secrets<<EOF" >> $GITHUB_OUTPUT
-          echo "$NEW_SECRETS" >> $GITHUB_OUTPUT
-          echo "<<EOF" >> $GITHUB_OUTPUT
+            "https://api.github.com/repos/${{ github.repository }}/secret-scanning/alerts?per_page=10" || echo "[]")
+          
+          if [ "$SECRETS" = "[]" ] || [ "$(echo "$SECRETS" | jq '.total_count')" = "0" ]; then
+            echo "no_secret_alerts=true" >> $GITHUB_OUTPUT
+            echo "secrets<<EOF" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "<<EOF" >> $GITHUB_OUTPUT
+          else
+            NEW_SECRETS=$(echo "$SECRETS" | jq -r '.items[] | select(.state == "active") | "*SECRET* \(.secret_type): \(.html_url)"' || echo "")
+            echo "no_secret_alerts=false" >> $GITHUB_OUTPUT
+            echo "secrets<<EOF" >> $GITHUB_OUTPUT
+            echo "$NEW_SECRETS" >> $GITHUB_OUTPUT
+            echo "<<EOF" >> $GITHUB_OUTPUT
+          fi
 
       - name: Send to Slack
-        if: steps.code-scan.outputs.alerts != '' || steps.secret-scan.outputs.secrets != ''
+        if: steps.code-scan.outputs.no_code_alerts == 'false' || steps.secret-scan.outputs.no_secret_alerts == 'false'
         uses: slackapi/slack-github-action@v1.26.0
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
@@ -50,7 +69,7 @@ jobs:
               "blocks": [
                 {
                   "type": "section",
-                  "text": { "type": "mrkdwn", "text": "🚨 *New GHAS Alerts*\n```\n${{ steps.code-scan.outputs.alerts }}\n${{ steps.secret-scan.outputs.secrets || '' }}\n```" }
+                  "text": { "type": "mrkdwn", "text": "🚨 *New GHAS Alerts*\n${{ steps.code-scan.outputs.alerts }}${{ steps.secret-scan.outputs.secrets }}" }
                 }
               ]
             }
