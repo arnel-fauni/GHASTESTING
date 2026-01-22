@@ -1,11 +1,5 @@
 name: GHAS Slack Notifications
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
+on: [push, pull_request]
 jobs:
   ghas-scan:
     runs-on: ubuntu-latest
@@ -16,79 +10,27 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: javascript,python  # Add your languages
+          languages: javascript,python  # Add your repo languages
       
-      - name: Perform CodeQL Analysis
+      - name: Perform CodeQL Analysis  
         uses: github/codeql-action/analyze@v3
       
-      # Secret Scanning (requires Advanced Security)
+      # Secret Scanning
       - name: Run Secret Scanning
         uses: github/secret-scanning-action@v1
-      
-  notify-slack:
+
+  notify:
     needs: ghas-scan
     runs-on: ubuntu-latest
-    if: always()
     steps:
-      - name: Slack GHAS Results
+      - name: Slack Notification
+        if: always()
         uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "🔍 *${{ github.workflow }}* completed!\n📊 *Status:* ${{ needs.ghas-scan.result }}\n📂 Repo: ${{ github.repository }}\n🔢 Run: #${{ github.run_number }}\n🛡️ *CodeQL:* ${{ needs.ghas-scan.result }}\n🔑 *Secret Scanning:* ${{ needs.ghas-scan.result }}\n📋 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+            }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          channel-id: '#ghas-notifications'
-          blocks: |
-            {
-              "blocks": [
-                {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "🔍 GHAS Scan Results: ${{ needs.ghas-scan.result }}"
-                  }
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Repo:* `${{ github.repository }}`"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Run:* #${{ github.run_number }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Branch:* `${{ github.ref_name }}`"
-                    }
-                  ]
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*CodeQL:* ${{ needs.ghas-scan.result }} - <${{ github.server_url }}/${{ github.repository }}/security/code-scanning | View alerts>"
-                  }
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Secret Scanning:* ${{ needs.ghas-scan.result }} - <${{ github.server_url }}/${{ github.repository }}/security/alerts | View secrets>"
-                  }
-                },
-                {
-                  "type": "actions",
-                  "elements": [
-                    {
-                      "type": "button",
-                      "text": {
-                        "type": "plain_text",
-                        "text": "View Workflow"
-                      },
-                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                    }
-                  ]
-                }
-              ]
-            }
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
