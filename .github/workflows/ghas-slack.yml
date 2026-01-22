@@ -1,5 +1,9 @@
 name: GHAS Slack Notifications
 on: [push, pull_request]
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: read
 jobs:
   ghas-scan:
     runs-on: ubuntu-latest
