@@ -10,26 +10,22 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: javascript,python  # Add your repo languages
+          languages: javascript,python  # Change to your languages
       
-      - name: Perform CodeQL Analysis  
+      - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
-      
-      # Secret Scanning
-      - name: Run Secret Scanning
-        uses: github/secret-scanning-action@v1
 
   notify:
     needs: ghas-scan
     runs-on: ubuntu-latest
+    if: always()
     steps:
       - name: Slack Notification
-        if: always()
         uses: slackapi/slack-github-action@v1.26.0
         with:
           payload: |
             {
-              "text": "🔍 *${{ github.workflow }}* completed!\n📊 *Status:* ${{ needs.ghas-scan.result }}\n📂 Repo: ${{ github.repository }}\n🔢 Run: #${{ github.run_number }}\n🛡️ *CodeQL:* ${{ needs.ghas-scan.result }}\n🔑 *Secret Scanning:* ${{ needs.ghas-scan.result }}\n📋 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+              "text": "🔍 *${{ github.workflow }}* completed!\n📊 *Status:* ${{ needs.ghas-scan.result }}\n📂 Repo: ${{ github.repository }}\n🔢 Run: #${{ github.run_number }}\n🛡️ *CodeQL:* ${{ needs.ghas-scan.result }}\n🔑 *Secret Scanning:* Automatic (View Security tab)\n📋 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
